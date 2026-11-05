@@ -222,11 +222,11 @@ function build(weeks, total, t) {
     grid += `<rect x="${x}" y="${y}" width="${BOX}" height="${BOX}" rx="2" fill="${t.empty}"/>`;
   }));
 
-  const label = `${total} ${total === 1 ? 'contribución' : 'contribuciones'} en el último año`;
+  const label = `${total} ${total === 1 ? 'contribution' : 'contributions'} in the last year`;
   const font = 'font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11"';
 
   // Meses (y el año en el primero y en enero), como el calendario de GitHub
-  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   let months = '';
   let lastMonth = -1, lastX = 0;
   weeks.forEach((days, c) => {
@@ -238,14 +238,14 @@ function build(weeks, total, t) {
     lastMonth = m;
     if (c === 0 && dt.getUTCDate() > 14) return; // mes cortado al principio: se saltea, como GitHub
     const x = PAD_X + c * CELL;
-    const txt = (m === 0 || months === '') ? `${MESES[m]} ${dt.getUTCFullYear()}` : MESES[m];
+    const txt = (m === 0 || months === '') ? `${MONTHS[m]} ${dt.getUTCFullYear()}` : MONTHS[m];
     if (x < lastX) return; // no pisar el texto anterior
     lastX = x + txt.length * 5.8 + 4;
     months += `<text x="${x}" y="${PAD_TOP - 8}" ${font} fill="${t.text}">${txt}</text>`;
   });
 
   // Días de la semana
-  const dias = [[1, 'Lun'], [3, 'Mié'], [5, 'Vie']]
+  const dias = [[1, 'Mon'], [3, 'Wed'], [5, 'Fri']]
     .map(([r, n]) => `<text x="${PAD_X - 8}" y="${PAD_TOP + r * CELL + 9}" text-anchor="end" ${font} fill="${t.text}">${n}</text>`).join('');
 
   // Barra de progreso de la vuelta completa
@@ -254,11 +254,11 @@ function build(weeks, total, t) {
 
   // Leyenda: Menos 🥕 Más
   const lx = W - PAD_X - 5 * 16 - 30;
-  let legend = `<text x="${lx - 6}" y="${H - 9}" text-anchor="end" ${font} fill="${t.text}">Menos</text>`;
+  let legend = `<text x="${lx - 6}" y="${H - 9}" text-anchor="end" ${font} fill="${t.text}">Less</text>`;
   [1, 2, 3, 4].forEach((lv, i) => {
     legend += `<g transform="translate(${lx + 8 + i * 16} ${H - 13}) scale(${scale[lv]})"><use href="#carrot" x="-6" y="-8" width="12" height="16"/></g>`;
   });
-  legend += `<text x="${lx + 8 + 4 * 16 - 2}" y="${H - 9}" ${font} fill="${t.text}">Más</text>`;
+  legend += `<text x="${lx + 8 + 4 * 16 - 2}" y="${H - 9}" ${font} fill="${t.text}">More</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H + BAR_SPACE}" width="${W}" height="${H + BAR_SPACE}">
 <defs>${carrotSymbol}${holeSymbol(t)}${dropSymbol}${cloudSymbol(t)}${bunnySymbol(t)}</defs>
