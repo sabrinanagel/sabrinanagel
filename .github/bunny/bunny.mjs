@@ -1,3 +1,8 @@
+// Genera un SVG animado: un conejito salta de zanahoria en zanahoria
+// (cada zanahoria es un día con contribuciones) y se las va comiendo.
+// Uso en GitHub Actions: GITHUB_TOKEN=... GITHUB_USER=usuario node bunny.mjs
+// Uso local sin token: node bunny.mjs  (genera datos de prueba al azar)
+
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const USER = process.env.GITHUB_USER;
@@ -6,14 +11,14 @@ const OUT = process.env.OUT_DIR || 'dist';
 
 const CELL = 14;          // distancia entre cuadraditos
 const BOX = 11;           // tamaño del cuadradito
-const PAD_X = 24;
-const PAD_TOP = 44;       // lugar arriba para los saltos
-const PAD_BOTTOM = 30;
+const PAD_X = 40;         // lugar a la izquierda para Lun/Mié/Vie
+const PAD_TOP = 52;       // lugar arriba para los meses y los saltos
+const PAD_BOTTOM = 34;
 
 // ---------- 1. Datos de contribuciones ----------
 
 async function fetchWeeks() {
-  const query = `query($login:String!){user(login:$login){contributionsCollection{contributionCalendar{totalContributions weeks{contributionDays{contributionCount contributionLevel weekday}}}}}}`;
+  const query = `query($login:String!){user(login:$login){contributionsCollection{contributionCalendar{totalContributions weeks{contributionDays{contributionCount contributionLevel weekday date}}}}}}`;
   const res = await fetch('https://api.github.com/graphql', {
     method: 'POST',
     headers: { Authorization: `bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -23,15 +28,18 @@ async function fetchWeeks() {
   if (!json.data?.user) throw new Error('No pude leer las contribuciones: ' + JSON.stringify(json.errors || json));
   const levels = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
   return json.data.user.contributionsCollection.contributionCalendar.weeks.map(w =>
-    w.contributionDays.map(d => ({ level: levels[d.contributionLevel] ?? 0, weekday: d.weekday }))
+    w.contributionDays.map(d => ({ level: levels[d.contributionLevel] ?? 0, weekday: d.weekday, date: d.date }))
   );
 }
 
 function fakeWeeks() {
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - 364 - start.getUTCDay());
   return Array.from({ length: 53 }, (_, c) =>
     Array.from({ length: 7 }, (_, r) => {
       const busy = Math.sin(c / 6) > 0 ? 0.45 : 0.2;
-      return { level: Math.random() < busy ? 1 + Math.floor(Math.random() * 4) : 0, weekday: r };
+      const d = new Date(start); d.setUTCDate(start.getUTCDate() + c * 7 + r);
+      return { level: Math.random() < busy ? 1 + Math.floor(Math.random() * 4) : 0, weekday: r, date: d.toISOString().slice(0, 10) };
     })
   );
 }
@@ -149,7 +157,39 @@ function build(weeks, t) {
     grid += `<rect x="${x}" y="${y}" width="${BOX}" height="${BOX}" rx="2" fill="${t.empty}"/>`;
   }));
 
-  const label = `${carrots.length} ${carrots.length === 1 ? 'zanahoria' : 'zanahorias'} este año`;
+  const label = `${carrots.length} ${carrots.length === 1 ? 'día con zanahoria' : 'días con zanahoria'} en el último año`;
+  const font = 'font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11"';
+
+  // Meses (y el año en el primero y en enero), como el calendario de GitHub
+  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  let months = '';
+  let lastMonth = -1, lastX = 0;
+  weeks.forEach((days, c) => {
+    const first = days.find(d => d.date);
+    if (!first) return;
+    const dt = new Date(first.date + 'T00:00:00Z');
+    const m = dt.getUTCMonth();
+    if (m === lastMonth) return;
+    lastMonth = m;
+    if (c === 0 && dt.getUTCDate() > 14) return; // mes cortado al principio: se saltea, como GitHub
+    const x = PAD_X + c * CELL;
+    const txt = (m === 0 || months === '') ? `${MESES[m]} ${dt.getUTCFullYear()}` : MESES[m];
+    if (x < lastX) return; // no pisar el texto anterior
+    lastX = x + txt.length * 6.5 + 6;
+    months += `<text x="${x}" y="${PAD_TOP - 8}" ${font} fill="${t.text}">${txt}</text>`;
+  });
+
+  // Días de la semana
+  const dias = [[1, 'Lun'], [3, 'Mié'], [5, 'Vie']]
+    .map(([r, n]) => `<text x="${PAD_X - 8}" y="${PAD_TOP + r * CELL + 9}" text-anchor="end" ${font} fill="${t.text}">${n}</text>`).join('');
+
+  // Leyenda: Menos 🥕 Más
+  const lx = W - PAD_X - 5 * 16 - 30;
+  let legend = `<text x="${lx - 6}" y="${H - 9}" text-anchor="end" ${font} fill="${t.text}">Menos</text>`;
+  [1, 2, 3, 4].forEach((lv, i) => {
+    legend += `<g transform="translate(${lx + 8 + i * 16} ${H - 13}) scale(${scale[lv]})"><use href="#carrot" x="-6" y="-8" width="12" height="16"/></g>`;
+  });
+  legend += `<text x="${lx + 8 + 4 * 16 - 2}" y="${H - 9}" ${font} fill="${t.text}">Más</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <defs>${carrotSymbol}${bunnySymbol(t)}</defs>
@@ -161,10 +201,13 @@ function build(weeks, t) {
 @keyframes ear{0%,80%,100%{transform:rotate(0)}88%{transform:rotate(-10deg)}94%{transform:rotate(6deg)}}
 ${carrotCss}
 </style>
+${months}
+${dias}
 ${grid}
 ${carrotEls}
 <g class="b"><use href="#bunny" x="-16" y="-32" width="32" height="34.7"/></g>
-<text x="${PAD_X}" y="${H - 9}" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" fill="${t.text}">${label}</text>
+<text x="${PAD_X}" y="${H - 9}" ${font} fill="${t.text}">${label}</text>
+${legend}
 </svg>`;
 }
 
