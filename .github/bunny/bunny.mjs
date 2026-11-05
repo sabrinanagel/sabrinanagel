@@ -175,7 +175,7 @@ function build(weeks, t) {
     const x = PAD_X + c * CELL;
     const txt = (m === 0 || months === '') ? `${MESES[m]} ${dt.getUTCFullYear()}` : MESES[m];
     if (x < lastX) return; // no pisar el texto anterior
-    lastX = x + txt.length * 6.5 + 6;
+    lastX = x + txt.length * 5.8 + 4;
     months += `<text x="${x}" y="${PAD_TOP - 8}" ${font} fill="${t.text}">${txt}</text>`;
   });
 
