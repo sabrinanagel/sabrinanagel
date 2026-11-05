@@ -14,7 +14,6 @@ const BOX = 11;           // tamaño del cuadradito
 const PAD_X = 40;         // lugar a la izquierda para Lun/Mié/Vie
 const PAD_TOP = 52;       // lugar arriba para los meses y los saltos
 const PAD_BOTTOM = 34;
-const BAR_SPACE = 12;     // lugar abajo para la barra de progreso
 
 // ---------- 1. Datos de contribuciones ----------
 
@@ -248,9 +247,10 @@ function build(weeks, total, t) {
   const dias = [[1, 'Mon'], [3, 'Wed'], [5, 'Fri']]
     .map(([r, n]) => `<text x="${PAD_X - 8}" y="${PAD_TOP + r * CELL + 9}" text-anchor="end" ${font} fill="${t.text}">${n}</text>`).join('');
 
-  // Barra de progreso de la vuelta completa
+  // Barra de progreso de la vuelta completa, entre el calendario y el texto
   const barW = cols * CELL - (CELL - BOX);
-  const bar = `<rect x="${PAD_X}" y="${H + 1}" width="${barW}" height="4" rx="2" fill="${t.empty}"/><rect x="${PAD_X}" y="${H + 1}" width="${barW}" height="4" rx="2" fill="#F08A24" class="bar"/>`;
+  const barY = H - PAD_BOTTOM + 4;
+  const bar = `<rect x="${PAD_X}" y="${barY}" width="${barW}" height="4" rx="2" fill="${t.empty}"/><rect x="${PAD_X}" y="${barY}" width="${barW}" height="4" rx="2" fill="#F08A24" class="bar"/>`;
 
   // Leyenda: Menos 🥕 Más
   const lx = W - PAD_X - 5 * 16 - 30;
@@ -260,7 +260,7 @@ function build(weeks, total, t) {
   });
   legend += `<text x="${lx + 8 + 4 * 16 - 2}" y="${H - 9}" ${font} fill="${t.text}">More</text>`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H + BAR_SPACE}" width="${W}" height="${H + BAR_SPACE}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <defs>${carrotSymbol}${holeSymbol(t)}${dropSymbol}${cloudSymbol(t)}${bunnySymbol(t)}</defs>
 <style>
 .c{transform-box:fill-box;transform-origin:50% 60%}
