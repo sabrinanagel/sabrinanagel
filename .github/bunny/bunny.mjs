@@ -186,7 +186,7 @@ function build(weeks, total, t) {
   // y bajan despacio hasta perderse en el vacío
   const LANE_X = W - 28;   // con el balanceo, el conejo y el paraguas entran justo en el margen
   const LANE_TOP = 62;
-  const FALL = 2.2;
+  const FALL = 1.3;
   function fall(b, at) {
     const dist = Math.hypot(LANE_X - b.px, LANE_TOP - b.py);
     b.steps.push({ t: at, x: b.px, y: b.py });
